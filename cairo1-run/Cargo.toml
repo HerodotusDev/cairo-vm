@@ -12,9 +12,9 @@ keywords.workspace = true
 cairo-vm = {workspace = true, features = ["std", "cairo-1-hints", "clap"]}
 serde_json = { workspace = true }
 
-cairo-lang-sierra-type-size = { version = "2.6.3", default-features = false }
-cairo-lang-sierra-ap-change = { version = "2.6.3", default-features = false }
-cairo-lang-sierra-gas = { version = "2.6.3", default-features = false }
+cairo-lang-sierra-type-size = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
+cairo-lang-sierra-ap-change = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
+cairo-lang-sierra-gas = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
 cairo-lang-starknet-classes.workspace = true
 cairo-lang-sierra-to-casm.workspace = true
 cairo-lang-compiler.workspace = true
