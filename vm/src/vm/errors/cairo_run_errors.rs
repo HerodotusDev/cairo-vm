@@ -7,7 +7,9 @@ use crate::types::errors::program_errors::ProgramError;
 use crate::vm::errors::{
     runner_errors::RunnerError, trace_errors::TraceError, vm_errors::VirtualMachineError,
 };
-
+// In case you need to add a CairoRunError enum variant
+// Add it with #[error(transparent)]
+// If not it can cause some performance regressions, like in https://github.com/lambdaclass/cairo-vm/pull/1720
 #[derive(Debug, Error)]
 pub enum CairoRunError {
     #[error(transparent)]
@@ -22,6 +24,6 @@ pub enum CairoRunError {
     MemoryError(#[from] MemoryError),
     #[error(transparent)]
     VmException(#[from] VmException),
-    #[error("Cairo Pie validation failed: {0}")]
+    #[error(transparent)]
     CairoPieValidation(#[from] CairoPieValidationError),
 }
