@@ -5,6 +5,7 @@ members = [
     "hint_accountant",
     "examples/wasm-demo",
     "cairo1-run",
+    "cairo1-compile",
     "cairo-vm-tracer",
     "examples/hyper_threading"
 ]

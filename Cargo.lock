@@ -943,6 +943,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "cairo1-compile"
+version = "1.0.0-rc2"
+dependencies = [
+ "assert_matches",
+ "bincode",
+ "cairo-felt",
+ "cairo-lang-casm",
+ "cairo-lang-compiler",
+ "cairo-lang-sierra",
+ "cairo-lang-sierra-ap-change",
+ "cairo-lang-sierra-gas",
+ "cairo-lang-sierra-to-casm",
+ "cairo-lang-sierra-type-size",
+ "cairo-lang-starknet-classes",
+ "cairo-lang-utils",
+ "cairo-vm",
+ "clap",
+ "itertools 0.11.0",
+ "mimalloc",
+ "num-bigint",
+ "num-integer",
+ "num-traits 0.2.19",
+ "rstest",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "cairo1-run"
 version = "1.0.0-rc2"
 dependencies = [

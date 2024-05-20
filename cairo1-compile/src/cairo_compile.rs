@@ -1,7 +1,10 @@
+pub mod function;
 pub mod segment;
 
-use crate::error::Error;
-use crate::{cairo_compile::segment::compute_bytecode_segment_lengths, cairo_run::find_function};
+use crate::{
+    cairo_compile::{function::find_function, segment::compute_bytecode_segment_lengths},
+    error::Error,
+};
 use cairo_felt::Felt252;
 use cairo_lang_casm::assembler::AssembledCairoProgram;
 use cairo_lang_casm::hints::PythonicHint;

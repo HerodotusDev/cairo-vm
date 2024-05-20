@@ -313,7 +313,7 @@ fn build_hints_vec<'b>(
 }
 
 /// Finds first function ending with `name_suffix`.
-pub fn find_function<'a>(
+fn find_function<'a>(
     sierra_program: &'a SierraProgram,
     name_suffix: &'a str,
 ) -> Result<&'a Function, RunnerError> {
