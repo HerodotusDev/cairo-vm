@@ -214,6 +214,7 @@ pub fn cairo_run_program(
         cairo_run_config.trace_enabled,
     )?;
     let end = runner.initialize(cairo_run_config.proof_mode)?;
+    load_arguments(&mut runner, &cairo_run_config, main_func)?;
 
     // Run it until the end / infinite loop in proof_mode
     runner.run_until_pc(end, &mut hint_processor)?;
@@ -342,6 +343,126 @@ fn create_code_footer() -> Vec<Instruction> {
     .instructions
 }
 
+// Loads the input arguments into the execution segment, leaving the necessary gaps for the values that will be written by
+// the instructions in the entry_code (produced by `create_entry_code`)
+
+/* Example of execution segment before running the main function:
+Before calling this function (after runner.initialize):
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+]
+After calling this function (before running the VM):
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    (*1+2+3) gap
+    (*1+2) gap
+    (*1+2) gap
+    (*2) gap
+    (*2) gap
+    (*2) gap
+    gap
+    gap
+    (*2) gap
+    (*3) arg_0
+    (*3) arg_1
+]
+
+After the entry_code (up until calling main) has been ran by the VM:
+[
+    (*1) output_builtin_base
+    builtin_base_0
+    builtin_base_1
+    return_fp
+    return_pc
+    (*1+2+3) gap (for output_builtin final ptr)
+    (*1+2) gap (for builtin_0 final ptr)
+    (*1+2) gap (for builtin_1 final ptr)
+    (*2) segment_arena_ptr
+    (*2) infos_ptr
+    (*2) 0
+    builtin_base_0
+    builtin_base_1
+    (*2) segment_arena_ptr + 3 (segment_arena base)
+    (*3) arg_0
+    (*3) arg_1
+]
+(*1) if output builtin is added (if either proof_mode or append_return_values is enabled)
+(*2) if segment arena is present
+(*3) if args are used
+*/
+fn load_arguments(
+    runner: &mut CairoRunner,
+    cairo_run_config: &Cairo1RunConfig,
+    main_func: &Function,
+) -> Result<(), Error> {
+    if cairo_run_config.args.is_empty() {
+        // Nothing to be done
+        return Ok(());
+    }
+    let got_segment_arena = main_func
+        .signature
+        .param_types
+        .iter()
+        .any(|ty| ty.debug_name.as_ref().is_some_and(|n| n == "SegmentArena"));
+    let append_output = cairo_run_config.append_return_values || cairo_run_config.proof_mode;
+    // This AP correction represents the memory slots taken up by the values created by `create_entry_code`:
+    // These include:
+    // * The builtin bases (not including output)
+    // * The segment arena values (if present), including:
+    //  * segment_arena_ptr
+    //  * info_segment_ptr
+    //  * 0
+    //  * (Only if the output builtin is added) A gap for each builtin's final pointer
+    let mut ap_offset = runner.get_program().builtins_len();
+    if append_output {
+        ap_offset -= 1;
+    }
+    if got_segment_arena {
+        ap_offset += 3;
+        if append_output {
+            ap_offset += runner.get_program().builtins_len();
+        }
+    }
+    for arg in cairo_run_config.args {
+        match arg {
+            FuncArg::Array(args) => {
+                let array_start = runner.vm.add_memory_segment();
+                let array_end = runner.vm.load_data(
+                    array_start,
+                    &args.iter().map(|f| f.into()).collect::<Vec<_>>(),
+                )?;
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    array_start,
+                )?;
+                ap_offset += 1;
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    array_end,
+                )?;
+                ap_offset += 1;
+            }
+            FuncArg::Single(arg) => {
+                runner.vm.insert_value(
+                    (runner.vm.get_ap() + ap_offset).map_err(VirtualMachineError::Math)?,
+                    arg,
+                )?;
+                ap_offset += 1;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Returns the instructions to add to the beginning of the code to successfully call the main
 /// function, as well as the builtins required to execute the program.
 fn create_entry_code(
@@ -383,30 +504,6 @@ fn create_entry_code(
         }
         casm_build_extend!(ctx, ap += builtins.len(););
     }
-    // Load all vecs to memory.
-    // Load all array args content to memory.
-    let mut array_args_data = vec![];
-    for arg in config.args {
-        let FuncArg::Array(values) = arg else {
-            continue;
-        };
-        casm_build_extend! {ctx,
-            tempvar arr;
-            hint AllocSegment {} into {dst: arr};
-            ap += 1;
-        };
-        array_args_data.push(arr);
-        for (i, v) in values.iter().enumerate() {
-            casm_build_extend! {ctx,
-                const cvalue = v.to_bigint();
-                tempvar value = cvalue;
-                assert value = arr[i.to_i16().unwrap()];
-            };
-        }
-    }
-    let mut array_args_data_iter = array_args_data.into_iter();
-    let mut arg_iter = config.args.iter().enumerate();
-    let mut param_index = 0;
     let mut expected_arguments_size = 0;
     if got_segment_arena {
         // Allocating the segment arena and initializing it.
@@ -445,39 +542,12 @@ fn create_entry_code(
             };
         } else {
             let ty_size = type_sizes[ty];
-            let mut param_accum_size = 0;
+            // We already loaded these arguments, so we just advance AP
+            casm_build_extend!(ctx,
+                ap+=ty_size as usize;
+            );
             expected_arguments_size += ty_size;
-            while param_accum_size < ty_size {
-                let Some((arg_index, arg)) = arg_iter.next() else {
-                    break;
-                };
-                match arg {
-                    FuncArg::Single(value) => {
-                        casm_build_extend! {ctx,
-                            const value = value.to_bigint();
-                            tempvar _value = value;
-                        };
-                        param_accum_size += 1;
-                    }
-                    FuncArg::Array(values) => {
-                        let var = array_args_data_iter.next().unwrap();
-                        casm_build_extend! {ctx,
-                            const length = values.len();
-                            tempvar start = var;
-                            tempvar end = var + length;
-                        };
-                        param_accum_size += 2;
-                        if param_accum_size > ty_size {
-                            return Err(Error::ArgumentUnaligned {
-                                param_index,
-                                arg_index,
-                            });
-                        }
-                    }
-                }
-            }
-            param_index += 1;
-        };
+        }
     }
     let actual_args_size = config
         .args
@@ -1176,7 +1246,7 @@ mod tests {
     use cairo_lang_compiler::{
         compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
     };
-    use cairo_vm::types::relocatable::Relocatable;
+    use cairo_vm::{program_hash::compute_program_hash_chain, types::relocatable::Relocatable};
     use rstest::rstest;
 
     fn compile_to_sierra(filename: &str) -> SierraProgram {
@@ -1265,5 +1335,40 @@ mod tests {
             .vm
             .get_maybe(&Relocatable::from((2_isize, return_values.len())))
             .is_none());
+    }
+    #[test]
+    fn check_program_hash_doesnt_change_based_on_arguments() {
+        let sierra_program = compile_to_sierra(
+            "../cairo_programs/cairo-1-programs/with_input/array_input_sum.cairo",
+        );
+        let config_a = Cairo1RunConfig {
+            layout: LayoutName::all_cairo,
+            args: &[
+                FuncArg::Single(Felt252::ONE),
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
+                FuncArg::Single(Felt252::TWO),
+                FuncArg::Array(vec![Felt252::ONE, Felt252::TWO, Felt252::THREE]),
+            ],
+            ..Default::default()
+        };
+        let config_b = Cairo1RunConfig {
+            layout: LayoutName::all_cairo,
+            args: &[
+                FuncArg::Single(Felt252::ZERO),
+                FuncArg::Array(vec![Felt252::THREE]),
+                FuncArg::Single(Felt252::ZERO),
+                FuncArg::Array(vec![Felt252::TWO]),
+            ],
+            ..Default::default()
+        };
+        let runner_a = cairo_run_program(&sierra_program, config_a).unwrap().0;
+        let runner_b = cairo_run_program(&sierra_program, config_b).unwrap().0;
+        let hash_a =
+            compute_program_hash_chain(&runner_a.get_program().get_stripped_program().unwrap(), 0)
+                .unwrap();
+        let hash_b =
+            compute_program_hash_chain(&runner_b.get_program().get_stripped_program().unwrap(), 0)
+                .unwrap();
+        assert_eq!(hash_a, hash_b)
     }
 }
