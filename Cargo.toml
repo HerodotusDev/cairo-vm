@@ -28,6 +28,7 @@ readme = "README.md"
 keywords = ["starknet", "cairo", "vm", "wasm", "no_std"]
 
 [workspace.dependencies]
+cairo-felt = "0.9.1"
 cairo-vm = { path = "./vm", version = "1.0.0-rc2", default-features = false }
 cairo-vm-tracer = { path = "./cairo-vm-tracer", version = "1.0.0-rc2", default-features = false }
 mimalloc = { version = "0.1.37", default-features = false }

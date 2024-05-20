@@ -1,3 +1,4 @@
+pub mod cairo_compile;
 pub mod cairo_run;
 pub mod error;
 // Re-export main struct and functions from crate for convenience

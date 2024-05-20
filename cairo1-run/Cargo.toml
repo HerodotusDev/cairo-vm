@@ -10,8 +10,6 @@ keywords.workspace = true
 
 [dependencies]
 cairo-vm = {workspace = true, features = ["std", "cairo-1-hints", "clap"]}
-serde_json = { workspace = true }
-
 cairo-lang-sierra-type-size = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
 cairo-lang-sierra-ap-change = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
 cairo-lang-sierra-gas = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
@@ -20,6 +18,11 @@ cairo-lang-sierra-to-casm.workspace = true
 cairo-lang-compiler.workspace = true
 cairo-lang-sierra.workspace = true
 cairo-lang-utils.workspace = true
+cairo-felt.workspace = true
+num-integer.workspace = true
+num-bigint = { workspace = true, default-features = true }
+serde = { workspace = true, default-features = true }
+serde_json.workspace = true
 cairo-lang-casm.workspace = true
 itertools = "0.11.0"
 clap = { version = "4.3.10", features = ["derive"] }
