@@ -22,6 +22,7 @@ cairo-vm-pypy-env/*
 /cairo-lang/
 *.tar
 cairo1-run/corelib/
+cairo1-compile/corelib/
 cairo-vm-cli/air_input.pub
 ensure-no_std/Cargo.lock
 cairo_programs/proof_programs/*.cairo
