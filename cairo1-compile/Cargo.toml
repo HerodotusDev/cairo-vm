@@ -20,6 +20,7 @@ cairo-lang-compiler.workspace = true
 cairo-lang-sierra.workspace = true
 cairo-lang-utils.workspace = true
 cairo-felt.workspace = true
+convert_case.workspace = true
 num-integer.workspace = true
 num-bigint = { workspace = true, default-features = true }
 serde = { workspace = true, default-features = true }

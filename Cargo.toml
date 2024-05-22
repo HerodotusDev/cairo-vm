@@ -78,6 +78,7 @@ cairo-lang-sierra-to-casm = { version = "2.6.3", default-features = false, git =
 cairo-lang-sierra = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
 cairo-lang-runner = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
 cairo-lang-utils = { version = "2.6.3", default-features = false, git = "https://github.com/HerodotusDev/cairo.git", branch = "herodotus" }
+convert_case = "0.6.0"
 
 # TODO: check these dependencies for wasm compatibility
 ark-ff = { version = "0.4.2", default-features = false }
