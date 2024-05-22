@@ -37,7 +37,7 @@ use serde_json::Number;
 use arbitrary::{self, Arbitrary, Unstructured};
 
 #[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
     pub builtins: Vec<BuiltinName>,

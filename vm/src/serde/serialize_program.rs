@@ -20,7 +20,7 @@ use crate::Felt252;
 // Their fields are equal to the ProgramJson
 // but keeping the default Serialization and Deserialization traits implementation
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub(crate) struct ProgramSerializer {
+pub struct ProgramSerializer {
     pub prime: String,
     pub builtins: Vec<BuiltinName>,
     pub data: Vec<MaybeRelocatable>,
@@ -118,7 +118,7 @@ impl From<HintParams> for HintParamsSerializer {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub(crate) struct IdentifierSerializer {
+pub struct IdentifierSerializer {
     pub pc: Option<usize>,
     pub type_: Option<String>,
     #[serde(default)]

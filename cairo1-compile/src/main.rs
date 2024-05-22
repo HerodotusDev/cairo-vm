@@ -2,6 +2,7 @@ use cairo1_compile::{cairo_compile::cairo_compile, error::Error};
 use cairo_lang_compiler::{
     compile_prepared_db, db::RootDatabase, project::setup_project, CompilerConfig,
 };
+use cairo_vm::serde::{deserialize_program::ProgramJson, serialize_program::ProgramSerializer};
 use clap::{Parser, ValueHint};
 use std::path::PathBuf;
 
@@ -37,11 +38,12 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         }
     };
 
-    let casm_sierra_program = cairo_compile(&sierra_program)?;
-
-    let serialized_json = serde_json::to_string(&casm_sierra_program)
-        .map_err(|e| Error::SierraCompilation(e.to_string()))?;
-    std::fs::write(args.outfile.as_path(), serialized_json)?;
+    let program = cairo_compile(&sierra_program).unwrap();
+    let program_json = ProgramJson::from(ProgramSerializer::from(&program));
+    std::fs::write(
+        args.outfile.as_path(),
+        format!("{}", serde_json::to_string(&program_json).unwrap()),
+    )?;
 
     Ok(())
 }
